@@ -12,7 +12,11 @@ RefineAI is an AI-powered writing assistant that transforms messy, informal text
 - Supports professional or friendly tone and same-length or shortened output
 - Includes general refinement, professional message, and academic writing presets
 - Saves up to 20 successful refinements in this browser, with individual and clear-all deletion
-- Lets users clear the input and download refined text
+- Lets users clear the input, copy refined text, and review recent history in a side panel
+
+### Screenshot
+
+![RefineAI interface showing refinement controls, output, and recent history button](docs/screenshots/refineai-ui.png)
 
 ### Run Locally
 

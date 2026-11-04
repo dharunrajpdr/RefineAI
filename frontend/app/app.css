@@ -24,15 +24,32 @@ body {
 }
 
 .refine-shell {
-  @apply min-h-screen px-4 py-8 md:px-8 md:py-10;
+  @apply min-h-screen px-4 py-6 md:px-8 md:py-8;
+  min-height: 100dvh;
 }
 
 .refine-wrap {
-  @apply mx-auto flex w-full max-w-4xl flex-col gap-6;
+  @apply mx-auto flex w-full max-w-4xl flex-col gap-4;
 }
 
 .refine-header {
-  @apply flex flex-col items-center gap-3 text-center;
+  @apply relative flex flex-col items-center gap-2 text-center;
+}
+
+.header-top-row {
+  @apply grid w-full grid-cols-3 items-center;
+}
+
+.header-top-row .badge-glow {
+  @apply justify-self-center;
+}
+
+.history-open-button {
+  @apply justify-self-end whitespace-nowrap;
+}
+
+.history-count {
+  @apply inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-cyan-300/15 px-1 text-xs text-cyan-100;
 }
 
 .badge-glow {
@@ -189,12 +206,16 @@ body {
 }
 
 .result-content {
-  @apply relative rounded-xl border border-white/10 bg-slate-950/50 p-4 pt-14 text-sm leading-7 text-slate-100 md:text-base;
+  @apply rounded-xl border border-white/10 bg-slate-950/50 p-4 text-sm leading-7 text-slate-100 md:text-base;
   animation: fadeIn 250ms ease-out;
 }
 
-.output-actions {
-  @apply absolute right-3 top-3 flex gap-2;
+.output-heading-row {
+  @apply mb-3 flex items-center justify-between gap-3;
+}
+
+.output-heading-row .field-label {
+  @apply mb-0;
 }
 
 .copy-button {
@@ -204,6 +225,10 @@ body {
 .copy-button:hover {
   @apply border-white/25 bg-white/10 text-white;
   cursor: pointer;
+}
+
+.copy-button:disabled {
+  @apply cursor-not-allowed opacity-50;
 }
 
 .copy-button:focus-visible {
@@ -265,6 +290,44 @@ body {
   @apply px-3 py-1.5 text-xs;
 }
 
+.history-overlay {
+  @apply fixed inset-0 z-50 flex justify-end bg-slate-950/65 backdrop-blur-sm;
+  animation: fadeIn 180ms ease-out;
+}
+
+.history-modal {
+  @apply flex h-full w-full max-w-xl flex-col border-l border-white/10 bg-slate-950/95 p-4 shadow-2xl shadow-black/40 backdrop-blur-xl md:p-6;
+  animation: slideInFromRight 240ms ease-out;
+}
+
+.history-modal .history-heading-row {
+  @apply shrink-0 border-b border-white/10 pb-4;
+}
+
+.history-modal .field-label {
+  @apply text-base;
+}
+
+.history-modal-actions {
+  @apply flex shrink-0 items-center gap-2;
+}
+
+.history-close-button {
+  @apply h-10 w-10 p-0 text-xl;
+}
+
+.history-modal-content {
+  @apply min-h-0 flex-1 overflow-y-auto overscroll-contain;
+}
+
+.history-modal-content .history-list {
+  @apply pb-2;
+}
+
+.history-modal-content .result-empty {
+  @apply mt-4;
+}
+
 .result-empty {
   @apply rounded-xl border border-dashed border-white/15 bg-slate-950/40 px-4 py-8 text-center text-sm text-slate-400;
 }
@@ -299,6 +362,16 @@ body {
   }
 }
 
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
 @media (max-width: 480px) {
   .action-row {
     @apply flex-col-reverse;
@@ -310,5 +383,41 @@ body {
 
   .history-heading-row {
     @apply items-start;
+  }
+
+  .header-top-row {
+    @apply flex items-center justify-between gap-2;
+  }
+
+  .header-top-row > span[aria-hidden="true"] {
+    @apply hidden;
+  }
+
+  .header-top-row .badge-glow {
+    @apply px-2 text-[10px];
+  }
+
+  .history-open-button {
+    @apply px-3 py-2 text-xs;
+  }
+
+  .history-modal {
+    @apply p-4;
+  }
+
+  .history-modal .history-heading-row {
+    @apply items-center;
+  }
+
+  .history-modal .field-label {
+    @apply text-sm;
+  }
+
+  .history-modal-actions {
+    @apply gap-1;
+  }
+
+  .history-modal-actions > .secondary-button:first-child {
+    @apply px-2 py-2 text-xs;
   }
 }

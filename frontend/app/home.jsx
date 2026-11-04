@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import RefinementForm from "./refinement/RefinementForm";
 import RefinementHistory from "./refinement/RefinementHistory";
 import RefinementOutput from "./refinement/RefinementOutput";
@@ -28,7 +28,26 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isCopied, setIsCopied] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const historyButtonRef = useRef(null);
   const history = useRefinementHistory();
+
+  useEffect(() => {
+    if (!isHistoryOpen) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setIsHistoryOpen(false);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", closeOnEscape);
+      historyButtonRef.current?.focus();
+    };
+  }, [isHistoryOpen]);
 
   const onSubmit = async (event) => {
     event.preventDefault();
@@ -106,26 +125,27 @@ export default function Home() {
     }
   };
 
-  const onDownloadResult = () => {
-    try {
-      const url = URL.createObjectURL(new Blob([refinedText], { type: "text/plain;charset=utf-8" }));
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "refined-text.txt";
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch {
-      setErrorMessage("Unable to download the refined text right now.");
-    }
-  };
-
   return (
     <main className="refine-shell">
       <section className="refine-wrap">
         <header className="refine-header">
-          <div className="badge-glow">
-            <span className="status-dot" />
-            AI-Powered Text Refinement
+          <div className="header-top-row">
+            <span aria-hidden="true" />
+            <div className="badge-glow">
+              <span className="status-dot" />
+              AI-Powered Text Refinement
+            </div>
+            <button
+              ref={historyButtonRef}
+              type="button"
+              className="secondary-button history-open-button"
+              onClick={() => setIsHistoryOpen(true)}
+              aria-haspopup="dialog"
+              aria-expanded={isHistoryOpen}
+            >
+              Recent history
+              {history.entries.length ? <span className="history-count">{history.entries.length}</span> : null}
+            </button>
           </div>
           <h1 className="refine-title">RefineAI</h1>
           <p className="refine-subtitle">
@@ -154,15 +174,17 @@ export default function Home() {
           isLoading={isLoading}
           isCopied={isCopied}
           onCopy={onCopyResult}
-          onDownload={onDownloadResult}
         />
+      </section>
+      {isHistoryOpen ? (
         <RefinementHistory
           entries={history.entries}
           errorMessage={history.errorMessage}
           onRemove={history.removeEntry}
           onClear={history.clearHistory}
+          onClose={() => setIsHistoryOpen(false)}
         />
-      </section>
+      ) : null}
     </main>
   );
 }

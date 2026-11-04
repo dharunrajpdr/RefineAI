@@ -1,7 +1,17 @@
-export default function RefinementOutput({ refinedText, isLoading, isCopied, onCopy, onDownload }) {
+export default function RefinementOutput({ refinedText, isLoading, isCopied, onCopy }) {
   return (
     <section className="result-card" aria-live="polite">
-      <h2 className="field-label">Refined output</h2>
+      <div className="output-heading-row">
+        <h2 className="field-label">Refined output</h2>
+        <button
+          type="button"
+          className="copy-button"
+          onClick={onCopy}
+          disabled={!refinedText || isLoading}
+        >
+          {isCopied ? "Copied" : "Copy"}
+        </button>
+      </div>
 
       {isLoading ? (
         <div className="loader-panel" role="status" aria-label="Refining text">
@@ -15,14 +25,6 @@ export default function RefinementOutput({ refinedText, isLoading, isCopied, onC
         </div>
       ) : refinedText ? (
         <article className="result-content">
-          <div className="output-actions">
-            <button type="button" className="copy-button" onClick={onCopy}>
-              {isCopied ? "Copied" : "Copy"}
-            </button>
-            <button type="button" className="copy-button download-button" onClick={onDownload}>
-              Download
-            </button>
-          </div>
           <p>{refinedText}</p>
         </article>
       ) : (

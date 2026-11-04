@@ -66,7 +66,7 @@ export default function RefinementForm({
         value={inputText}
         onChange={(event) => setInputText(event.target.value)}
         disabled={isLoading}
-        rows={8}
+        rows={4}
       />
 
       <div className="action-row">
