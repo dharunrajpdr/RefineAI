@@ -1,8 +1,8 @@
 package com.dharmaraj.RefineAI.services;
 
+import com.dharmaraj.RefineAI.dtos.RefinementRequestDto;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.ollama.api.OllamaChatOptions;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -28,8 +28,12 @@ public final class OllamaAiService {
         if (message.trim().isBlank())
             throw new RuntimeException("Prompt cannot be empty");
 
-        Prompt prompt = new Prompt(AiRuleSetter.setContext(message), getOllamaChatOptions());
-        ChatResponse response = chatModel.call(prompt);
+        var request = new RefinementRequestDto(
+                message,
+                RefinementRequestDto.Preset.GENERAL,
+                RefinementRequestDto.Tone.PROFESSIONAL,
+                RefinementRequestDto.Length.SAME_LENGTH);
+        ChatResponse response = chatModel.call(AiRuleSetter.createPrompt(request, getOllamaChatOptions()));
 
         return Objects.requireNonNull(response.getResult()).getOutput().getText();
     }

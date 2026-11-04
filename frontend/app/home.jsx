@@ -1,12 +1,20 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import RefinementForm from "./refinement/RefinementForm";
+import RefinementHistory from "./refinement/RefinementHistory";
+import RefinementOutput from "./refinement/RefinementOutput";
+import { useRefinementHistory } from "./refinement/useRefinementHistory";
+
+const apiBaseUrl = (import.meta.env.VITE_API_URL || "http://localhost:8080").replace(
+  /\/+$/,
+  "",
+);
 
 export function meta() {
   return [
     { title: "RefineAI | AI Text Refinement" },
     {
       name: "description",
-      content:
-        "RefineAI helps you transform rough text into polished, professional writing in seconds.",
+      content: "RefineAI helps you transform rough text into polished, professional writing.",
     },
   ];
 }
@@ -14,26 +22,21 @@ export function meta() {
 export default function Home() {
   const [inputText, setInputText] = useState("");
   const [refinedText, setRefinedText] = useState("");
+  const [preset, setPreset] = useState("GENERAL");
+  const [tone, setTone] = useState("PROFESSIONAL");
+  const [length, setLength] = useState("SAME_LENGTH");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [hasSubmitted, setHasSubmitted] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
-
-  const canSubmit = useMemo(
-    () => inputText.trim().length > 0 && !isLoading,
-    [inputText, isLoading],
-  );
+  const history = useRefinementHistory();
 
   const onSubmit = async (event) => {
     event.preventDefault();
-    const value = inputText.trim();
-
-    setHasSubmitted(true);
+    const prompt = inputText.trim();
     setErrorMessage("");
     setIsCopied(false);
 
-    if (!value) {
-      setRefinedText("");
+    if (!prompt) {
       setErrorMessage("Enter some text before refining.");
       return;
     }
@@ -42,28 +45,38 @@ export default function Home() {
     setRefinedText("");
 
     try {
-      const response = await fetch(import.meta.env.VITE_API_URL + "/api/groq/response?prompt=" + encodeURIComponent(value), {
-        method: "GET"
+      const response = await fetch(`${apiBaseUrl}/api/groq/response`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt,
+          preset,
+          tone,
+          length,
+        }),
       });
-
-      let payload = {};
-      try {
-        payload = await response.json();
-      } catch {
-        payload = {};
-      }
+      const payload = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        const errorMsg = payload.errorMessage || `Server responded with status ${response.status}`;
-        throw new Error(errorMsg);
+        throw new Error(payload.errorMessage || `Server responded with status ${response.status}`);
       }
 
-      const output = payload.refinedText;
+      if (typeof payload.refinedText !== "string" || !payload.refinedText.trim()) {
+        throw new Error("The AI returned an empty result. Please try again.");
+      }
 
-      setRefinedText(output);
+      setRefinedText(payload.refinedText);
+      history.addEntry({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        input: prompt,
+        output: payload.refinedText,
+        preset,
+        tone,
+        length,
+        createdAt: new Date().toISOString(),
+      });
     } catch (error) {
-      const fallbackMessage = "Something went wrong. Please try again.";
-      setErrorMessage(error instanceof Error ? error.message : fallbackMessage);
+      setErrorMessage(error instanceof Error ? error.message : "Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -76,20 +89,33 @@ export default function Home() {
       if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(refinedText);
       } else {
-        const tempTextArea = document.createElement("textarea");
-        tempTextArea.value = refinedText;
-        tempTextArea.setAttribute("readonly", "");
-        tempTextArea.style.position = "absolute";
-        tempTextArea.style.left = "-9999px";
-        document.body.appendChild(tempTextArea);
-        tempTextArea.select();
+        const textArea = document.createElement("textarea");
+        textArea.value = refinedText;
+        textArea.setAttribute("readonly", "");
+        textArea.style.position = "absolute";
+        textArea.style.left = "-9999px";
+        document.body.appendChild(textArea);
+        textArea.select();
         document.execCommand("copy");
-        document.body.removeChild(tempTextArea);
+        document.body.removeChild(textArea);
       }
-
       setIsCopied(true);
+      setErrorMessage("");
     } catch {
       setErrorMessage("Unable to copy right now. Please try again.");
+    }
+  };
+
+  const onDownloadResult = () => {
+    try {
+      const url = URL.createObjectURL(new Blob([refinedText], { type: "text/plain;charset=utf-8" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "refined-text.txt";
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      setErrorMessage("Unable to download the refined text right now.");
     }
   };
 
@@ -103,82 +129,39 @@ export default function Home() {
           </div>
           <h1 className="refine-title">RefineAI</h1>
           <p className="refine-subtitle">
-            Turn rough drafts into clear, professional writing with a single
-            click.
+            Turn rough drafts into clear, professional writing with a single click.
           </p>
         </header>
 
-        <form className="refine-card" onSubmit={onSubmit}>
-          <label htmlFor="rawText" className="field-label">
-            Your text
-          </label>
-          <textarea
-            id="rawText"
-            className="refine-textarea"
-            placeholder="Paste or type your text here..."
-            value={inputText}
-            onChange={(event) => setInputText(event.target.value)}
-            disabled={isLoading}
-            rows={8}
-          />
+        <RefinementForm
+          inputText={inputText}
+          setInputText={setInputText}
+          preset={preset}
+          setPreset={setPreset}
+          tone={tone}
+          setTone={setTone}
+          length={length}
+          setLength={setLength}
+          isLoading={isLoading}
+          isHistoryReady={history.isReady}
+          errorMessage={errorMessage}
+          onClear={() => setInputText("")}
+          onSubmit={onSubmit}
+        />
 
-          <div className="action-row">
-            <button type="submit" className="refine-button" disabled={!canSubmit}>
-              {isLoading ? "Refining..." : "Refine"}
-            </button>
-          </div>
-
-          {hasSubmitted && !isLoading && !inputText.trim() ? (
-            <p className="feedback feedback-warning">Enter some text to continue.</p>
-          ) : null}
-
-          {errorMessage ? <p className="feedback feedback-error">{errorMessage}</p> : null}
-        </form>
-
-        <section className="result-card" aria-live="polite">
-          <h2 className="field-label">Refined output</h2>
-
-          {isLoading ? (
-            <div className="loader-panel" role="status" aria-label="Refining text">
-              <div className="spinner" />
-              <div className="skeleton-group">
-                <span className="skeleton-line" />
-                <span className="skeleton-line skeleton-wide" />
-                <span className="skeleton-line" />
-                <span className="skeleton-line skeleton-short" />
-              </div>
-            </div>
-          ) : refinedText ? (
-            <article className="result-content">
-              <button
-                type="button"
-                className={`copy-button ${isCopied ? "is-copied" : ""}`}
-                onClick={onCopyResult}
-                aria-label={isCopied ? "Copied" : "Copy refined text"}
-              >
-                {isCopied ? (
-                  <>
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>
-                    Copied
-                  </>
-                ) : (
-                  <>
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <rect x="9" y="9" width="11" height="11" rx="2" ry="2" />
-                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                    </svg>
-                    Copy
-                  </>
-                )}
-              </button>
-              <p>{refinedText}</p>
-            </article>
-          ) : (
-            <div className="result-empty">Your refined text will appear here.</div>
-          )}
-        </section>
+        <RefinementOutput
+          refinedText={refinedText}
+          isLoading={isLoading}
+          isCopied={isCopied}
+          onCopy={onCopyResult}
+          onDownload={onDownloadResult}
+        />
+        <RefinementHistory
+          entries={history.entries}
+          errorMessage={history.errorMessage}
+          onRemove={history.removeEntry}
+          onClear={history.clearHistory}
+        />
       </section>
     </main>
   );
